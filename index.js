@@ -1,3 +1,6 @@
+// ⚠️ AAPKI SERVER ID AUTO-SET KAR DI HAI:
+const GUILD_ID = '1504851460318302321'; 
+
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const express = require('express');
 
@@ -44,16 +47,21 @@ client.on('ready', async () => {
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
     try {
-        console.log('Refreshing slash commands...');
-        await rest.put(Routes.applicationCommands(client.user.id), { body: [] });
-        await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-        console.log('Slash commands loaded successfully!');
+        console.log('Server ke liye instant slash commands load ho rahi hain...');
+        
+        // Yeh line aapke specific server me command bhejegi bina delay ke
+        await rest.put(
+            Routes.applicationGuildCommands(client.user.id, GUILD_ID),
+            { body: commands }
+        );
+        
+        console.log('Instant Slash commands loaded successfully!');
     } catch (error) {
         console.error(error);
     }
 });
 
-// COMMAND INTERACTION HANDLER
+// INTERACTION HANDLING (TICKET GENERATOR)
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const { commandName, options } = interaction;
@@ -112,7 +120,6 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-// DROPDOWN AND BUTTON HANDLER
 client.on('interactionCreate', async (interaction) => {
     if (interaction.isStringSelectMenu() && interaction.customId === 'dynamic_ticket_menu') {
         const selectedValue = interaction.values[0];
@@ -150,9 +157,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (interaction.isButton() && interaction.customId === 'close_ticket_btn') {
         await interaction.reply('🔒 Deleting channel in 5s...');
-        setTimeout(() => {
-            interaction.channel.delete().catch(() => {});
-        }, 5000);
+        setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
     }
 });
 
