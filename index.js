@@ -1,8 +1,9 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField, ChannelType } = require('discord.js');
 const express = require('express');
 
+// 24/7 Uptime Web Server
 const app = express();
-app.get('/', (req, res) => res.send('Bot is active 24/7!'));
+app.get('/', (req, res) => res.send('Ticket Bot is active 24/7!'));
 app.listen(3000, () => console.log('Web Server Ready!'));
 
 const client = new Client({
@@ -16,16 +17,17 @@ const client = new Client({
 
 const PREFIX = '!'; 
 let ticketCount = 0; 
-let targetCategoryId = null; // Stores your chosen category ID
+let targetCategoryId = null; // Stores selected category ID in memory
 
-// Cooldown Map (Stores user ID and expiration timestamp)
+// Map tracking user rate limits
 const ticketCooldowns = new Map();
 
 client.on('ready', () => {
-    console.log(`${client.user.tag} is online and fully configured!`);
+    console.log(`[SYSTEM] ${client.user.tag} is online. Only Ticket Management modules are loaded.`);
     client.user.setActivity('Managing Tickets', { type: 3 });
 });
 
+// TEXT PREFIX COMMANDS
 client.on('messageCreate', async (message) => {
     if (message.author.bot || !message.content.startsWith(PREFIX)) return;
 
@@ -33,7 +35,7 @@ client.on('messageCreate', async (message) => {
     const commandWithArgs = args[0].trim().split(/ +/);
     const command = commandWithArgs.shift().toLowerCase();
 
-    // 1. MAIN TICKET PANEL SETUP COMMAND
+    // 1. TICKET PANEL GENERATION SETUP COMMAND
     if (command === 'ticket-setup') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return message.reply("❌ You do not have permission to execute this command!");
@@ -61,6 +63,7 @@ client.on('messageCreate', async (message) => {
 
         const menuOptions = [];
 
+        // Dynamic addition of Category 1
         menuOptions.push({
             label: cat1_label,
             emoji: cat1_emoji,
@@ -68,6 +71,7 @@ client.on('messageCreate', async (message) => {
             value: `custom_cat_1_${cat1_label.toLowerCase().replace(/ /g, '_')}`
         });
 
+        // Optional Category 2
         if (args[5] && args[6]) {
             const cat2_label = args[5].trim();
             const cat2_emoji = args[6].trim();
@@ -79,6 +83,7 @@ client.on('messageCreate', async (message) => {
             });
         }
 
+        // Optional Category 3
         if (args[7] && args[8]) {
             const cat3_label = args[7].trim();
             const cat3_emoji = args[8].trim();
@@ -101,33 +106,32 @@ client.on('messageCreate', async (message) => {
         await message.delete().catch(() => {}); 
     }
 
-    // 2. CONFIGURATION COMMAND: SET CATEGORY VIA GUI DROPDOWN
+    // 2. GUI TARGET CONFIGURATION: !set-ticket-category
     if (command === 'set-ticket-category') {
         if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return message.reply("❌ You do not have permission to execute this command!");
         }
 
-        // Fetch all categories from the current server
         const categories = message.guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
 
         if (categories.size === 0) {
-            return message.reply("❌ There are no server category channels available in this server!");
+            return message.reply("❌ There are no category folders found in this server!");
         }
 
         const configEmbed = new EmbedBuilder()
-            .setTitle('⚙️ Ticket Category Configuration')
-            .setDescription('Please select the specific target server category panel from the dropdown menu below. All newly created tickets will automatically generate underneath it.')
+            .setTitle('⚙️ Ticket Target Folder Configuration')
+            .setDescription('Select the target category folder from the selection menu below. All future open support rooms will nest underneath it.')
             .setColor('#3498db');
 
         const categoryOptions = categories.map(cat => ({
             label: cat.name,
             description: `ID: ${cat.id}`,
             value: `set_target_cat_${cat.id}`
-        })).slice(0, 25); // Discord select menus support up to 25 items maximum
+        })).slice(0, 25); 
 
         const configMenu = new StringSelectMenuBuilder()
             .setCustomId('config_category_menu')
-            .setPlaceholder('Select a destination category folder...')
+            .setPlaceholder('Choose a destination category...')
             .addOptions(categoryOptions);
 
         const configRow = new ActionRowBuilder().addComponents(configMenu);
@@ -136,31 +140,31 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// COMPONENT INTERACTIONS LOGIC
+// SYSTEM GUI HANDLING INTERACTION INTERFACE
 client.on('interactionCreate', async (interaction) => {
     
-    // HANDLING THE CATEGORY CONFIGURATION MENU
+    // ACTION A: LOCK TARGET CATEGORY CHOICE
     if (interaction.isStringSelectMenu() && interaction.customId === 'config_category_menu') {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return interaction.reply({ content: "❌ You don't have access to update settings.", ephemeral: true });
+            return interaction.reply({ content: "❌ You don't have access to update global system configurations.", ephemeral: true });
         }
 
         const selectedCatId = interaction.values[0].replace('set_target_cat_', '');
-        targetCategoryId = selectedCatId; // Saved in memory
+        targetCategoryId = selectedCatId; 
 
         const targetChannel = interaction.guild.channels.cache.get(selectedCatId);
         
         await interaction.reply({ 
-            content: `✅ **Success!** Target ticket destination has been successfully locked onto: **${targetChannel ? targetChannel.name : selectedCatId}**`, 
+            content: `✅ **Configuration Applied!** All incoming support instances will now automatically target: **${targetChannel ? targetChannel.name : selectedCatId}**`, 
             ephemeral: false 
         });
     }
 
-    // HANDLING USER TICKET CREATION DROPDOWN
+    // ACTION B: CREATE CHANNELS UPON USER DROPDOWN SELECTION
     if (interaction.isStringSelectMenu() && interaction.customId === 'prefix_ticket_menu') {
         const userId = interaction.user.id;
 
-        // 1-Minute Anti-Spam Rate Limit Cooldown Validation
+        // Anti-Spam Rate Limit Calculation Check (60 Seconds)
         if (ticketCooldowns.has(userId)) {
             const expirationTime = ticketCooldowns.get(userId);
             const currentTime = Date.now();
@@ -168,7 +172,7 @@ client.on('interactionCreate', async (interaction) => {
             if (currentTime < expirationTime) {
                 const timeLeft = Math.ceil((expirationTime - currentTime) / 1000);
                 return interaction.reply({ 
-                    content: `⏳ **Rate Limit Active!** Please wait **${timeLeft} seconds** before creating another support ticket instance.`, 
+                    content: `⏳ **Anti-Spam Filter:** Please wait **${timeLeft} seconds** before spawning another help thread instance inside the guild.`, 
                     ephemeral: true 
                 });
             }
@@ -178,23 +182,20 @@ client.on('interactionCreate', async (interaction) => {
         const cleanCategoryName = selectedValue.split('_').slice(3).join('-'); 
         const emojiUsed = interaction.component.options.find(o => o.value === selectedValue).emoji?.name || '📩';
 
-        // Check for existing open channels
-        const existingChannel = interaction.guild.channels.cache.find(c => c.name.includes(cleanCategoryName) && c.name.includes(String(ticketCount)));
-        
         await interaction.deferReply({ ephemeral: true });
 
-        // Format formatting tracker index increment
+        // Update sequential ticker formatting index values
         ticketCount++;
         const paddedCount = String(ticketCount).padStart(4, '0');
         
-        // Output channel pattern target: 📄-support-0001
+        // Output channel structure scheme format: 📄-support-0001
         const channelName = `${emojiUsed}-${cleanCategoryName}-${paddedCount}`;
 
         try {
             const ticketChannel = await interaction.guild.channels.create({
                 name: channelName,
                 type: ChannelType.GuildText,
-                parent: targetCategoryId, // Places it inside your saved category GUI option
+                parent: targetCategoryId, // Places room right under your custom GUI selected folder
                 permissionOverwrites: [
                     { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
                     { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles] }
@@ -219,14 +220,14 @@ client.on('interactionCreate', async (interaction) => {
                     .setEmoji('🔒')
             );
 
-            // Send clean welcome notification message pinging the support team role ID explicitly
+            // Cleared all custom username headers. Pings your exact Support Staff Team via Role ID outside the text layout block.
             await ticketChannel.send({ 
                 content: `<@&1504851460502978696> Welcome ${interaction.user} to their support room.`, 
                 embeds: [ticketEmbed], 
                 components: [closeButton] 
             });
 
-            // Set a strict 1-minute expiration timeline block parameter
+            // Log rate limit timestamp expiration lock
             ticketCooldowns.set(userId, Date.now() + 60000);
 
             await interaction.editReply({ content: `✅ Your ticket channel has been created successfully: ${ticketChannel}` });
@@ -236,7 +237,7 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 
-    // HANDLING TICKET CHANNEL CLOSE ACTIONS
+    // ACTION C: DISMISS CHANNEL VIA INTERACTION BUTTON
     if (interaction.isButton() && interaction.customId === 'close_ticket_btn') {
         await interaction.reply('🔒 This support instance is closing. Channel deletion will occur within **5 seconds**...');
         setTimeout(() => {
