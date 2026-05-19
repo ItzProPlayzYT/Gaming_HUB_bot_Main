@@ -247,3 +247,45 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.login(process.env.TOKEN);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// This array holds your custom status lines
+const activities = [
+    "Managing GamingHUB",
+    "All in one Bot",
+    "Made by ItzProPlayzYT"
+];
+
+client.on('ready', () => {
+    console.log(`[SYSTEM] ${client.user.tag} is online with custom rotating statuses!`);
+    
+    let index = 0;
+    
+    // Set the initial status immediately when the bot boots up
+    client.user.setActivity(activities[index], { type: 3 }); // type: 3 means "WATCHING"
+
+    // This loop changes the status every 10,000 milliseconds (10 seconds)
+    setInterval(() => {
+        index = (index + 1) % activities.length; // Moves to the next item, loops back to 0 at the end
+        client.user.setActivity(activities[index], { type: 3 });
+    }, 10000); 
+});
+
