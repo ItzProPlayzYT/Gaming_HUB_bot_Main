@@ -1,26 +1,25 @@
-// Express server (Render ke liye zaroori hai)
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Online!'));
 app.listen(port, () => console.log(`Web server running on port ${port}`));
 
-// Discord.js code
 const { 
     Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, 
-    ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle 
+    ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder 
 } = require('discord.js');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const TOKEN = 'APNA_BOT_TOKEN_YAHAN_DALEIN';
+const TOKEN = 'APNA_TOKEN_YAHAN_DAALEIN'; // Token sahi daalein
 
 client.once('ready', () => {
     console.log(`Bot is logged in as ${client.user.tag}!`);
 });
 
 client.on('interactionCreate', async interaction => {
-    // 1. COMMAND: /ticket-setup
+    
+    // Command Handle
     if (interaction.isChatInputCommand()) {
         if (interaction.commandName === 'ticket-setup') {
             const row1 = new ActionRowBuilder().addComponents(
@@ -41,21 +40,30 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // 2. BUTTON HANDLING
+    // Buttons Handle
     if (interaction.isButton()) {
         if (interaction.customId === 'btn_title') {
             const modal = new ModalBuilder().setCustomId('modal_title').setTitle('Set Ticket Title');
-            const input = new TextInputBuilder().setCustomId('input_title').setLabel('Enter Title').setStyle(TextInputStyle.Short);
+            const input = new TextInputBuilder()
+                .setCustomId('input_title')
+                .setLabel('Enter Title')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+            
             modal.addComponents(new ActionRowBuilder().addComponents(input));
             await interaction.showModal(modal);
         }
+        
+        if (interaction.customId === 'btn_exit') {
+            await interaction.update({ content: 'Setup closed.', components: [] });
+        }
     }
 
-    // 3. MODAL SUBMIT
+    // Modal Handle
     if (interaction.isModalSubmit()) {
         if (interaction.customId === 'modal_title') {
-            const title = interaction.fields.getTextInputValue('input_title');
-            await interaction.reply({ content: `Title successfully set to: ${title}`, ephemeral: true });
+            const val = interaction.fields.getTextInputValue('input_title');
+            await interaction.reply({ content: `Title saved as: ${val}`, ephemeral: true });
         }
     }
 });
