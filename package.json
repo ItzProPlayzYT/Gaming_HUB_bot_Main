@@ -1,16 +1,12 @@
 {
-  "name": "discord-ticket-bot",
-  "version": "1.4.0",
-  "description": "Custom Customizable Ticket Bot",
+  "name": "my-discord-bot",
+  "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "express": "^4.19.2"
-  },
-  "engines": {
-    "node": ">=16.0.0"
+    "discord.js": "^14.14.0"
   }
 }
+
