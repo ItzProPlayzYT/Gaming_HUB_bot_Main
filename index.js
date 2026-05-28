@@ -1,22 +1,39 @@
+// 1. Web Server (Render ke liye)
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is Online!'));
-app.listen(port, () => console.log(`Web server running on port ${port}`));
+app.listen(process.env.PORT || 3000);
 
+// 2. Discord.js Setup
 const { 
-    Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, 
-    ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder 
+    Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, 
+    ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, 
+    TextInputBuilder, TextInputStyle 
 } = require('discord.js');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const TOKEN = 'YOUR_BOT_TOKEN_HERE';
+const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // Bot ki ID
 
-const TOKEN = 'APNA_TOKEN_YAHAN_DAALEIN'; // Token sahi daalein
+// 3. Command Register karna (Ready hote hi)
+client.once('ready', async () => {
+    const commands = [
+        new SlashCommandBuilder()
+            .setName('ticket-setup')
+            .setDescription('Setup your ticket system')
+    ];
 
-client.once('ready', () => {
-    console.log(`Bot is logged in as ${client.user.tag}!`);
+    const rest = new REST({ version: '10' }).setToken(TOKEN);
+    try {
+        await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+        console.log('Successfully registered /ticket-setup command!');
+    } catch (error) {
+        console.error(error);
+    }
+    console.log(`Logged in as ${client.user.tag}!`);
 });
 
+// 4. Interaction Handling
 client.on('interactionCreate', async interaction => {
     
     // Command Handle
@@ -26,17 +43,12 @@ client.on('interactionCreate', async interaction => {
                 new ButtonBuilder().setCustomId('btn_title').setLabel('Title').setStyle(ButtonStyle.Primary),
                 new ButtonBuilder().setCustomId('btn_desc').setLabel('Description').setStyle(ButtonStyle.Primary)
             );
-            
             const row2 = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('btn_save').setLabel('Save & Set Category').setStyle(ButtonStyle.Success),
+                new ButtonBuilder().setCustomId('btn_save').setLabel('Save').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId('btn_exit').setLabel('Exit').setStyle(ButtonStyle.Danger)
             );
 
-            await interaction.reply({ 
-                content: 'Ticket Setup Menu:', 
-                components: [row1, row2], 
-                ephemeral: true 
-            });
+            await interaction.reply({ content: 'Ticket Setup Menu:', components: [row1, row2], ephemeral: true });
         }
     }
 
@@ -44,18 +56,12 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isButton()) {
         if (interaction.customId === 'btn_title') {
             const modal = new ModalBuilder().setCustomId('modal_title').setTitle('Set Ticket Title');
-            const input = new TextInputBuilder()
-                .setCustomId('input_title')
-                .setLabel('Enter Title')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true);
-            
+            const input = new TextInputBuilder().setCustomId('input_title').setLabel('Enter Title').setStyle(TextInputStyle.Short).setRequired(true);
             modal.addComponents(new ActionRowBuilder().addComponents(input));
             await interaction.showModal(modal);
         }
-        
         if (interaction.customId === 'btn_exit') {
-            await interaction.update({ content: 'Setup closed.', components: [] });
+            await interaction.update({ content: 'Setup cancelled.', components: [] });
         }
     }
 
@@ -63,7 +69,7 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isModalSubmit()) {
         if (interaction.customId === 'modal_title') {
             const val = interaction.fields.getTextInputValue('input_title');
-            await interaction.reply({ content: `Title saved as: ${val}`, ephemeral: true });
+            await interaction.reply({ content: `Title saved: ${val}`, ephemeral: true });
         }
     }
 });
