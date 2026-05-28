@@ -289,3 +289,65 @@ client.on('ready', () => {
     }, 10000); 
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+
+// ... client initialization ...
+
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+
+    if (interaction.commandName === 'ticket-setup') {
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder().setCustomId('title').setLabel('Title').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('desc').setLabel('Description').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('color').setLabel('Color').setStyle(ButtonStyle.Primary),
+            );
+        
+        const row2 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder().setCustomId('save').setLabel('Save & Set Category').setStyle(ButtonStyle.Success),
+                new ButtonBuilder().setCustomId('exit').setLabel('Exit').setStyle(ButtonStyle.Danger),
+            );
+
+        await interaction.reply({
+            content: 'Please enter the requested information as prompted.',
+            components: [row, row2],
+            ephemeral: true
+        });
+    }
+});
+
+// Button Interaction Handler
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isButton()) return;
+
+    if (interaction.customId === 'title') {
+        // Yahan ModalBuilder use karein input lene ke liye
+        const modal = new ModalBuilder()
+            .setCustomId('titleModal')
+            .setTitle('Set Ticket Title');
+        // Add text input component here...
+        await interaction.showModal(modal);
+    }
+    // Baaki buttons ke liye bhi same logic...
+});
+
+
