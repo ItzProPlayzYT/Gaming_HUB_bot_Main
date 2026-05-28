@@ -304,50 +304,48 @@ client.on('ready', () => {
 
 
 
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
-
-const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-
-// ... client initialization ...
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
-
-    if (interaction.commandName === 'ticket-setup') {
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder().setCustomId('title').setLabel('Title').setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId('desc').setLabel('Description').setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId('color').setLabel('Color').setStyle(ButtonStyle.Primary),
+    // 1. Command handle karna
+    if (interaction.isChatInputCommand()) {
+        if (interaction.commandName === 'ticket-setup') {
+            const row1 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('btn_title').setLabel('Title').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('btn_desc').setLabel('Description').setStyle(ButtonStyle.Primary)
             );
-        
-        const row2 = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder().setCustomId('save').setLabel('Save & Set Category').setStyle(ButtonStyle.Success),
-                new ButtonBuilder().setCustomId('exit').setLabel('Exit').setStyle(ButtonStyle.Danger),
-            );
+            
+            await interaction.reply({ content: 'Select an option to setup:', components: [row1], ephemeral: true });
+        }
+    }
 
-        await interaction.reply({
-            content: 'Please enter the requested information as prompted.',
-            components: [row, row2],
-            ephemeral: true
-        });
+    // 2. Button handle karna
+    if (interaction.isButton()) {
+        if (interaction.customId === 'btn_title') {
+            const modal = new ModalBuilder()
+                .setCustomId('modal_title')
+                .setTitle('Enter Ticket Title');
+
+            const input = new TextInputBuilder()
+                .setCustomId('input_title')
+                .setLabel('New Title')
+                .setStyle(TextInputStyle.Short);
+
+            modal.addComponents(new ActionRowBuilder().addComponents(input));
+            await interaction.showModal(modal);
+        }
+    }
+
+    // 3. Modal Submit handle karna
+    if (interaction.isModalSubmit()) {
+        if (interaction.customId === 'modal_title') {
+            const val = interaction.fields.getTextInputValue('input_title');
+            await interaction.reply({ content: `Title set to: ${val}`, ephemeral: true });
+        }
     }
 });
 
-// Button Interaction Handler
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-
-    if (interaction.customId === 'title') {
-        // Yahan ModalBuilder use karein input lene ke liye
-        const modal = new ModalBuilder()
-            .setCustomId('titleModal')
-            .setTitle('Set Ticket Title');
-        // Add text input component here...
-        await interaction.showModal(modal);
-    }
-    // Baaki buttons ke liye bhi same logic...
-});
-
+client.login('YOUR_TOKEN');
 
